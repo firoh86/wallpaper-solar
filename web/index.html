@@ -254,10 +254,10 @@
         <div id="globe-container" class="absolute inset-0"></div>
 
         <!-- Volver y conmutadores -->
-        <div class="absolute top-4 left-4 flex items-center gap-2">
+        <div id="moon-toolbar" class="absolute top-4 left-4 flex items-center gap-2">
           <button id="btn-moon-back" type="button" title="Volver al Sistema Solar (Esc)"
             class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] uppercase tracking-[0.12em] text-[#F8FAFC]">
-            ← Volver al Sistema Solar [Esc]
+            ← Volver<span class="moon-long"> al Sistema Solar [Esc]</span>
           </button>
           <button id="btn-moon-markers" type="button" title="Mostrar u ocultar los lugares de alunizaje"
             class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] text-[#F8FAFC]">
@@ -301,7 +301,7 @@
         </div>
 
         <!-- Telemetría lunar compacta -->
-        <aside class="absolute left-4 bottom-4 w-72 nasa-panel p-3">
+        <aside id="moon-telemetry" class="absolute left-4 bottom-4 w-72 nasa-panel p-3">
           <h3 class="text-[10px] uppercase tracking-[0.12em] text-[#8A99AD] pb-1.5 border-b border-white/15">Telemetría lunar</h3>
           <dl class="mt-2 space-y-1.5 text-[11px]">
             <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Fase</dt><dd id="moon-phase-name" class="mono text-[#F8FAFC]">--</dd></div>

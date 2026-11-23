@@ -26,6 +26,11 @@ export function zoomStep(zoomIn, baseFactor) {
   S.zoom = Math.max(ZOOM_MIN, Math.min(maxZoom(), next));
 }
 
+/** Zoom continuo (pellizco en pantallas táctiles), dentro de los límites de la escala actual. */
+export function setZoomClamped(z) {
+  S.zoom = Math.max(ZOOM_MIN, Math.min(maxZoom(), z));
+}
+
 /**
  * Escala real: zoom para encuadrar un cuerpo con sus lunas separadas.
  *  - luna: queda a ~140 px de su planeta

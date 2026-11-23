@@ -71,10 +71,23 @@ export function layoutMoonView() {
 
 // Modo compacto según el ancho real de la zona de la Luna (cambia también al plegar el panel).
 const COMPACT_BELOW_PX = 1120;
+// Pantalla pequeña (móvil, versión web): diseño propio en main.css. Al entrar en él, el panel de
+// misiones empieza plegado para que se vea la Luna.
+const SMALL_W_PX = 760;
+const SMALL_H_PX = 520;
 function updateCompact() {
   const inner = $('moon-view-inner');
   const stage = $('moon-stage');
-  if (!inner || !stage || !stage.clientWidth) return;
+  if (!inner) return;
+  const small = inner.clientWidth > 0 && (inner.clientWidth < SMALL_W_PX || inner.clientHeight < SMALL_H_PX);
+  if (small && inner.dataset.small !== 'true') {
+    moonUi.panelCollapsed = true;
+    inner.dataset.small = 'true';
+    renderMissionsPanel();
+  } else if (!small) {
+    inner.dataset.small = 'false';
+  }
+  if (!stage || !stage.clientWidth) return;
   inner.dataset.compact = String(stage.clientWidth < COMPACT_BELOW_PX);
 }
 let compactObserver = null;

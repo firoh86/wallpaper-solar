@@ -216,7 +216,14 @@ export function initMissionsPanel() {
   });
   $('mission-list').addEventListener('click', (e) => {
     const b = e.target.closest('[data-mission]');
-    if (b) selectMission(b.dataset.mission);
+    if (!b) return;
+    // en pantalla pequeña el panel tapa la Luna: se pliega para ver dónde está la misión
+    if ($('moon-view-inner').dataset.small === 'true' && !moonUi.panelCollapsed) {
+      moonUi.panelCollapsed = true;
+      changed();
+      renderToggles();
+    }
+    selectMission(b.dataset.mission);
   });
   $('btn-mission-close').addEventListener('click', clearMissionSelection);
   $('btn-moon-markers').addEventListener('click', () => {

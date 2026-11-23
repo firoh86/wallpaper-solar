@@ -9,6 +9,7 @@ __pycache__/
 # Web (se instala con npm / se genera con vite build)
 node_modules/
 web/dist/
+web/dist-web/
 
 # Compilación (PyInstaller e Inno Setup)
 build/output/

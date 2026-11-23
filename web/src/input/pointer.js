@@ -2,7 +2,7 @@
 
 import { S } from '../state.js';
 import { exitMoonView, toggleMoonView } from '../moon/transition.js';
-import { focusSelectedOrReset, linearFocusZoom, zoomStep } from '../ui/camera.js';
+import { focusSelectedOrReset, linearFocusZoom, setZoomClamped, zoomStep } from '../ui/camera.js';
 import { closeBodiesMenu, isBodiesMenuOpen } from '../ui/bodies-menu.js';
 import { btnPause, canvas, inspectorCard } from '../ui/dom.js';
 import { updateInspectorPanel } from '../ui/hud.js';
@@ -110,6 +110,12 @@ canvas.addEventListener('dblclick', (e) => {
   }
 });
 
+// Táctil (versión web): un dedo desplaza y, si apenas se mueve, selecciona; dos dedos acercan/alejan
+// (pellizco) y, en 3D, al moverlos juntos giran la cámara.
+let pinch = null;
+const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+const touchMid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+
 canvas.addEventListener('touchstart', (e) => {
   if (S.view !== 'solar') return;
   if (e.touches.length === 1) {
@@ -119,10 +125,23 @@ canvas.addEventListener('touchstart', (e) => {
       x: e.touches[0].clientX - S.panOffset.x,
       y: e.touches[0].clientY - S.panOffset.y
     };
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    const m = touchMid(e.touches);
+    pinch = { d0: touchDist(e.touches) || 1, z0: S.zoom, x0: m.x, y0: m.y, yaw0: S.camYaw, pitch0: S.camPitch };
   }
 }, { passive: true });
 
 canvas.addEventListener('touchmove', (e) => {
+  if (pinch && e.touches.length === 2) {
+    setZoomClamped(pinch.z0 * (touchDist(e.touches) / pinch.d0));
+    if (S.is3DMode) {
+      const m = touchMid(e.touches);
+      S.camYaw = pinch.yaw0 - (m.x - pinch.x0) * 0.0065;
+      S.camPitch = Math.max(0.05, Math.min(Math.PI - 0.05, pinch.pitch0 + (m.y - pinch.y0) * 0.0065));
+    }
+    return;
+  }
   if (isDragging && e.touches.length === 1) {
     const nx = e.touches[0].clientX - dragStart.x;
     const ny = e.touches[0].clientY - dragStart.y;
@@ -134,6 +153,12 @@ canvas.addEventListener('touchmove', (e) => {
 }, { passive: true });
 
 canvas.addEventListener('touchend', (e) => {
+  if (pinch) {
+    // al levantar un dedo del pellizco no se selecciona nada ni se salta el desplazamiento
+    if (e.touches.length === 0) pinch = null;
+    isDragging = false;
+    return;
+  }
   if (isDragging && movedDist < 8 && e.changedTouches.length === 1) {
     selectBodyAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   }

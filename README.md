@@ -21,7 +21,7 @@ completa e incluye una vista lunar con un globo 3D y el catálogo de misiones a 
 | Simulación | **JavaScript (módulos ES)** + **Canvas 2D** | Sistema Solar, física y HUD |
 | Globo lunar | **three.js** (WebGL) | Esfera con el mapa de la LRO, luz solar real y marcadores de misiones |
 | Estilos | **Tailwind CSS 3** + fuentes **Inter** / **JetBrains Mono** (Fontsource) | Interfaz estilo centro de control; todo local, sin conexión |
-| Compilación web | **Vite** + **vite-plugin-singlefile** | Junta JS, CSS, fuentes e imágenes en **un único `index.html`** (WebView2 no carga módulos JS desde `file://`) |
+| Compilación web | **Vite** + **vite-plugin-singlefile** | Junta JS, CSS, fuentes e imágenes en **un único `index.html`** (WebView2 no carga módulos JS desde `file://`). `npm run build:web` saca además una versión con archivos separados para publicarla en una web |
 | Ejecutable | **PyInstaller 6** | `WallpaperSolar.exe` en modo carpeta, sin consola |
 | Instalador | **Inno Setup 6** | Instalación por usuario y desinstalación limpia |
 | Calidad | **pytest** + **ruff** | Tests (sin necesidad de Windows) y revisión de código |
@@ -134,6 +134,16 @@ En VS Code lo mismo con `Ctrl+Shift+P` → **Tasks: Run Task**:
 
 > El wallpaper carga `web/dist/index.html`, que se genera: no se edita a mano ni se sube al repositorio.
 
+**Versión web** (la que se prueba en el navegador desde [firoh86.github.io](https://firoh86.github.io/#/aplicaciones/wallpaper-solar)):
+
+```powershell
+npm --prefix web run build:web      # genera web\dist-web\ (index.html + assets\)
+```
+
+Para publicarla, se copia lo que hay dentro de `web\dist-web\` a `public\wallpaper-solar\jugar\` de la web
+(borrando antes lo que había). Es la misma simulación: sin el puente con Python, con gestos táctiles
+(un dedo desplaza, dos acercan y en 3D giran) y un diseño propio para pantallas pequeñas.
+
 ### 2.4 Generar el instalador
 
 Requisito adicional: **Inno Setup 6** (https://jrsoftware.org/isdl.php).
@@ -201,6 +211,7 @@ Ajustes de comportamiento para desarrollo en `src/wallpaper_solar/config.py`:
 - Clic, doble clic, arrastre, rueda y teclas **F**, **Espacio**, **Esc** y **L** funcionan sobre el escritorio libre, sin interferir con las demás aplicaciones.
 - Se pausa sola cuando una aplicación ocupa la pantalla completa y se recoloca si cambian los monitores o se pulsa Win+D.
 - Funciona sin conexión a internet.
+- También se puede probar en el navegador, también en el móvil: https://firoh86.github.io/#/aplicaciones/wallpaper-solar
 
 **Menú de la bandeja**: Modo interactivo · Mostrar/Ocultar HUD · Centrar Sistema Solar · Iniciar con Windows ·
 Abrir carpeta de registros · Desinstalar… (versión instalada) · Cerrar.

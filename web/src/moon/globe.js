@@ -383,12 +383,30 @@ export function onGlobePick(fn) {
 
 function bindPointer() {
   let drag = null;
+  // Dedos o ratón apoyados ahora mismo: con dos, pellizco para acercar/alejar (versión web en el móvil).
+  const pts = new Map();
+  let pinch = null;
+  const ptsDist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
   overlay.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, y: e.clientY, moved: 0 };
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     overlay.setPointerCapture(e.pointerId);
+    if (pts.size === 2) {
+      drag = null;
+      pinch = { d0: ptsDist(), dist0: view.dist };
+      return;
+    }
+    if (pts.size > 2) return;
+    drag = { x: e.clientX, y: e.clientY, moved: 0 };
     overlay.classList.replace('cursor-grab', 'cursor-grabbing');
   });
   overlay.addEventListener('pointermove', (e) => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size === 2) {
+      tween = null;
+      view.dist = Math.max(DIST_MIN, Math.min(DIST_MAX, 1 + (pinch.dist0 - 1) * (pinch.d0 / ptsDist())));
+      requestRender();
+      return;
+    }
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved += Math.hypot(dx, dy);
@@ -397,6 +415,12 @@ function bindPointer() {
     rotateGlobeBy(dx, dy);
   });
   const end = (e) => {
+    pts.delete(e.pointerId);
+    if (pinch) {
+      if (pts.size < 2) pinch = null;
+      drag = null;
+      return;
+    }
     if (drag && drag.moved < 5) {
       const id = pickMissionAt(e.clientX, e.clientY);
       if (id) onPick(id);
@@ -405,7 +429,7 @@ function bindPointer() {
     overlay.classList.replace('cursor-grabbing', 'cursor-grab');
   };
   overlay.addEventListener('pointerup', end);
-  overlay.addEventListener('pointercancel', () => { drag = null; });
+  overlay.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); pinch = null; drag = null; });
   overlay.addEventListener('wheel', (e) => {
     e.preventDefault();
     zoomGlobeBy(e.deltaY < 0 ? 1 : -1);
