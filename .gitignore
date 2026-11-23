@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Web (se instala con npm / se genera con vite build)
+node_modules/
+web/dist/
+
+# Compilación (PyInstaller e Inno Setup)
+build/output/
+dist/
+
+# npm ejecutado por error fuera de web/
+/package-lock.json
+/package.json
+
+# Sistema
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store

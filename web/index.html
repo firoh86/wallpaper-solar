@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- El título debe coincidir con WINDOW_TITLE en src/wallpaper_solar/config.py -->
+  <title>SISTEMA SOLAR // TELEMETRÍA JPL EN VIVO</title>
+</head>
+<body class="relative w-screen h-screen bg-[#030508] text-[#F8FAFC]">
+
+  <!-- Lienzo espacial a pantalla completa -->
+  <div id="canvas-container" class="absolute inset-0 w-full h-full">
+    <canvas id="solarCanvas"></canvas>
+  </div>
+
+  <!-- Barra Superior Minimalista Estilo Centro de Control NASA / JPL -->
+  <header id="hud-header" class="pointer-events-none absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-wrap items-center justify-between gap-2">
+    <!-- Identificador de misión y estado en vivo -->
+    <div class="pointer-events-auto nasa-panel px-3 py-2 flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
+        <span id="live-dot" class="w-2 h-2 bg-[#FC3D21] inline-block"></span>
+        <span class="text-xs font-semibold tracking-[0.14em] uppercase text-[#F8FAFC]">
+          SISTEMA SOLAR <span class="text-[#1C67E3]">//</span> <span id="live-label">EN VIVO</span>
+        </span>
+      </div>
+      <span class="hidden md:inline-block h-3.5 w-px bg-white/15"></span>
+      <span id="engine-badge" class="hidden md:inline-block mono text-[11px] tracking-wider text-[#8A99AD]">
+        JPL J2000.0
+      </span>
+      <span class="hidden lg:inline-block h-3.5 w-px bg-white/15"></span>
+      <span id="jd-badge" class="hidden lg:inline-block mono text-[11px] text-[#8A99AD]">
+        JD 2451545.00000
+      </span>
+    </div>
+
+    <!-- Reloj UTC / Local en tiempo real y botón AHORA -->
+    <div class="pointer-events-auto nasa-panel px-3 py-2 flex items-center gap-3 text-xs">
+      <div class="mono flex items-center gap-2.5 text-[11px]">
+        <span class="text-[#8A99AD]">UTC <strong id="clock-utc" class="font-medium text-[#F8FAFC]">----/--/-- --:--:--</strong></span>
+        <span class="hidden sm:inline text-white/20">|</span>
+        <span class="hidden sm:inline text-[#8A99AD]">LOC <span id="clock-local" class="text-[#CBD5E1]">--:--:--</span></span>
+      </div>
+
+      <button id="btn-now" type="button" title="Sincronizar con este mismo instante"
+        class="nasa-btn-active px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] uppercase">
+        AHORA
+      </button>
+    </div>
+  </header>
+
+  <!-- Panel Lateral Derecho de Telemetría (oculto hasta seleccionar un cuerpo) -->
+  <aside id="inspector-card" class="hidden fixed right-3 sm:right-4 top-16 sm:top-18 z-20 w-72 sm:w-80 nasa-panel p-4 max-h-[calc(100vh-8.5rem)] overflow-y-auto">
+    <div class="flex items-start justify-between pb-3 border-b border-white/15">
+      <div class="flex items-center gap-2.5">
+        <span id="insp-swatch" class="w-3 h-3 inline-block shrink-0 border border-white/30"></span>
+        <div>
+          <h2 id="insp-name" class="text-xs font-semibold tracking-[0.14em] uppercase text-[#F8FAFC]">TIERRA</h2>
+          <p id="insp-category" class="mono text-[11px] text-[#8A99AD] mt-0.5">Planeta terrestre</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button id="btn-explore-moon-insp" type="button" title="Viajar a la vista lunar (Tecla L)"
+          class="hidden nasa-btn-active px-2 py-1 mono text-[10px] uppercase tracking-wider">
+          EXPLORAR [L]
+        </button>
+        <button id="btn-follow-body" type="button" title="Fijar cámara en este cuerpo (Tecla F)"
+          class="nasa-btn px-2 py-1 mono text-[10px] uppercase tracking-wider text-[#8A99AD] border border-white/15">
+          SEGUIR [F]
+        </button>
+        <button id="btn-close-inspector" type="button" aria-label="Cerrar panel"
+          class="nasa-btn px-2 py-1 mono text-xs text-[#8A99AD]">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <dl class="mt-3 space-y-2.5 text-xs">
+      <!-- Datos específicos si es luna -->
+      <div id="insp-host-block" class="hidden pb-2.5 border-b border-white/10 space-y-1.5">
+        <div class="flex items-baseline justify-between">
+          <dt class="text-[11px] text-[#8A99AD]">Planeta Anfitrión</dt>
+          <dd id="insp-host-name" class="mono text-[#F8FAFC] font-medium">--</dd>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <dt class="text-[11px] text-[#8A99AD]">Dist. al Planeta</dt>
+          <dd id="insp-dist-host" class="mono text-[#F8FAFC]">-- km</dd>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <dt class="text-[11px] text-[#8A99AD]">Vel. respecto Planeta</dt>
+          <dd id="insp-vel-host" class="mono text-[#1C67E3]">-- km/s</dd>
+        </div>
+      </div>
+
+      <!-- Distancia al Sol -->
+      <div>
+        <div class="flex items-baseline justify-between">
+          <dt class="text-[11px] text-[#8A99AD]">Distancia al Sol</dt>
+          <dd id="insp-dist-sun-au" class="mono text-[#F8FAFC] font-medium">1.00000 AU</dd>
+        </div>
+        <div class="text-right">
+          <span id="insp-dist-sun-km" class="mono text-[10px] text-[#8A99AD]">149,597,871 km</span>
+        </div>
+      </div>
+
+      <!-- Distancia a la Tierra -->
+      <div>
+        <div class="flex items-baseline justify-between">
+          <dt class="text-[11px] text-[#8A99AD]">Distancia a la Tierra</dt>
+          <dd id="insp-dist-earth-au" class="mono text-[#F8FAFC] font-medium">0.00000 AU</dd>
+        </div>
+        <div class="text-right">
+          <span id="insp-dist-earth-km" class="mono text-[10px] text-[#8A99AD]">0 km</span>
+        </div>
+      </div>
+
+      <!-- Velocidad orbital heliocéntrica -->
+      <div class="flex items-baseline justify-between pt-1 border-t border-white/10">
+        <dt class="text-[11px] text-[#8A99AD]">Velocidad Heliocéntrica</dt>
+        <dd id="insp-velocity" class="mono text-[#1C67E3] font-medium">29.78 km/s</dd>
+      </div>
+
+      <!-- Periodo orbital -->
+      <div class="flex items-baseline justify-between">
+        <dt class="text-[11px] text-[#8A99AD]">Periodo Orbital</dt>
+        <dd id="insp-period" class="mono text-[#CBD5E1]">365.26 d</dd>
+      </div>
+
+      <!-- Coordenadas cartesianas heliocéntricas J2000 -->
+      <div class="pt-2 border-t border-white/10">
+        <dt class="text-[10px] uppercase tracking-[0.12em] text-[#8A99AD] mb-1.5">
+          Vector Heliocéntrico J2000 (AU)
+        </dt>
+        <dd id="insp-coords" class="mono text-[11px] text-[#CBD5E1] grid grid-cols-3 gap-1 bg-black/40 p-2 border border-white/10">
+          <span>X: 0.0000</span>
+          <span>Y: 0.0000</span>
+          <span>Z: 0.0000</span>
+        </dd>
+      </div>
+    </dl>
+  </aside>
+
+  <!-- Notificación rectangular estilo consola -->
+  <div id="toast-box" class="pointer-events-none fixed bottom-16 left-1/2 -translate-x-1/2 z-30 transition-opacity duration-150 opacity-0">
+    <div id="toast-message" class="nasa-panel text-[#F8FAFC] mono text-[11px] tracking-wider uppercase px-3.5 py-1.5 border border-[#1C67E3]">
+      TELEMETRÍA SINCRONIZADA
+    </div>
+  </div>
+
+  <!-- Barra Inferior Compacta de Control + Logotipo a la derecha -->
+  <footer id="hud-footer" class="pointer-events-none fixed bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-20 flex items-center justify-center">
+    <div class="pointer-events-auto nasa-panel px-2 py-1.5 flex flex-wrap items-center justify-center gap-1 text-[11px]">
+      
+      <!-- Pausar / Reanudar -->
+      <button id="btn-pause" type="button"
+        class="nasa-btn px-2.5 py-1.5 font-medium uppercase tracking-wider text-[#F8FAFC]">
+        Pausar
+      </button>
+
+      <span class="h-4 w-px bg-white/15 mx-0.5"></span>
+
+      <!-- Selector de velocidad temporal -->
+      <button data-rate="1" class="rate-btn nasa-btn-active px-2 py-1.5 mono font-medium">
+        1x Real
+      </button>
+      <button data-rate="3600" class="rate-btn nasa-btn px-2 py-1.5 mono text-[#8A99AD]">
+        1 h/s
+      </button>
+      <button data-rate="86400" class="rate-btn nasa-btn px-2 py-1.5 mono text-[#8A99AD]">
+        1 d/s
+      </button>
+      <button data-rate="604800" class="rate-btn nasa-btn px-2 py-1.5 mono text-[#8A99AD]">
+        7 d/s
+      </button>
+      <button data-rate="2592000" class="rate-btn nasa-btn px-2 py-1.5 mono text-[#8A99AD]">
+        30 d/s
+      </button>
+
+      <span class="h-4 w-px bg-white/15 mx-0.5"></span>
+
+      <!-- Vista 3D ON/OFF -->
+      <button id="btn-toggle-3d" type="button" title="Alternar proyección 3D con inclinación orbital real (Clic derecho para rotar cámara)"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#8A99AD]">
+        3D: OFF
+      </button>
+
+      <!-- Modo de escala -->
+      <button id="btn-scale-mode" type="button" title="Alternar entre escala equilibrada y escala real 1:1 AU"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#8A99AD]">
+        Escala: Visual
+      </button>
+
+      <!-- Lunas ON/OFF -->
+      <button id="btn-toggle-moons" type="button" title="Mostrar u ocultar las 9 lunas principales"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#F8FAFC]">
+        Lunas: ON
+      </button>
+
+      <!-- Guías orbitales y etiquetas ON/OFF -->
+      <button id="btn-toggle-guides" type="button" title="Mostrar u ocultar órbitas y etiquetas"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#F8FAFC]">
+        Guías: ON
+      </button>
+
+      <!-- Motor físico -->
+      <button id="btn-toggle-engine" type="button" title="Alternar entre Efemérides JPL J2000.0 e Integrador Gravitatorio N-Cuerpos Velocity Verlet"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#8A99AD]">
+        Motor: JPL
+      </button>
+
+      <span class="h-4 w-px bg-white/15 mx-0.5"></span>
+
+      <!-- Lista de cuerpos: seleccionar y seguir cualquier planeta o luna -->
+      <div class="relative">
+        <button id="btn-bodies" type="button" title="Elegir un planeta o una luna y centrar la cámara en él"
+          class="nasa-btn px-2.5 py-1.5 mono text-[#F8FAFC]">
+          Cuerpos ▾
+        </button>
+        <div id="bodies-menu" class="hidden absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-64 nasa-panel p-1.5 max-h-[70vh] overflow-y-auto">
+          <div class="px-2 pt-1 pb-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[#8A99AD] border-b border-white/10 mb-1">Ir a…</div>
+          <div id="bodies-list"></div>
+        </div>
+      </div>
+
+      <!-- Expansión lunar -->
+      <button id="btn-explore-moon" type="button" title="Viajar a la vista lunar (Tecla L)"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#8A99AD]">
+        Explorar Luna [L]
+      </button>
+
+      <!-- Centrar vista -->
+      <button id="btn-center" type="button" title="Centrar cámara en el Sistema Solar (o tecla F sobre un objeto seleccionado)"
+        class="nasa-btn px-2.5 py-1.5 mono text-[#8A99AD]">
+        Centrar [F]
+      </button>
+
+      <span class="h-4 w-px bg-white/15 mx-1"></span>
+
+      <!-- Logotipo a la derecha del menú inferior -->
+      <img id="brand-logo" src="./src/assets/rubikeys.png" alt="RubiKeys" />
+    </div>
+  </footer>
+
+  <!-- Expansión lunar: capa de fundido a negro (transición) -->
+  <div id="moon-fade" class="pointer-events-none fixed inset-0 z-40 bg-[#030508]" style="opacity: 0"></div>
+
+  <!-- Expansión lunar: vista dedicada. Izquierda/centro: globo 3D de la Luna.
+       Derecha: catálogo de misiones con filtros. -->
+  <section id="moon-view" class="hidden fixed inset-0 z-50 bg-[#030508]">
+    <div id="moon-view-inner" class="absolute">
+
+      <!-- Zona de la Luna (todo menos el panel derecho) -->
+      <div id="moon-stage" class="absolute top-0 bottom-0 left-0 right-[24rem]">
+        <!-- Globo 3D (three.js). Arrastrar = girar, rueda = zoom, doble clic = cara visible -->
+        <div id="globe-container" class="absolute inset-0"></div>
+
+        <!-- Volver y conmutadores -->
+        <div class="absolute top-4 left-4 flex items-center gap-2">
+          <button id="btn-moon-back" type="button" title="Volver al Sistema Solar (Esc)"
+            class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] uppercase tracking-[0.12em] text-[#F8FAFC]">
+            ← Volver al Sistema Solar [Esc]
+          </button>
+          <button id="btn-moon-markers" type="button" title="Mostrar u ocultar los lugares de alunizaje"
+            class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] text-[#F8FAFC]">
+            Marcadores: ON
+          </button>
+          <button id="btn-moon-light" type="button" title="Luz real del instante simulado (fase y terminador) o luz uniforme para ver toda la superficie"
+            class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] text-[#F8FAFC]">
+            Luz: Real
+          </button>
+          <button id="btn-moon-labels" type="button" title="Mostrar u ocultar los nombres de las misiones sobre la Luna"
+            class="nasa-panel nasa-btn px-3 py-2 mono text-[11px] text-[#8A99AD]">
+            Nombres: OFF
+          </button>
+        </div>
+
+        <!-- Título -->
+        <div id="moon-title" class="absolute top-4 right-4 nasa-panel px-3 py-2 flex items-center gap-2.5">
+          <span class="w-2 h-2 bg-[#CBD5E1] inline-block"></span>
+          <span class="text-xs font-semibold tracking-[0.14em] uppercase">
+            LUNA <span class="text-[#1C67E3]">//</span> <span class="text-[#8A99AD] font-medium">Satélite natural · Tierra</span>
+          </span>
+        </div>
+
+        <!-- Ficha de la misión seleccionada -->
+        <div id="mission-card" class="hidden absolute right-4 top-[5.25rem] w-80 nasa-panel p-4">
+          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-white/15">
+            <div>
+              <h3 id="mc-name" class="text-xs font-semibold tracking-[0.14em] uppercase">--</h3>
+              <p id="mc-meta" class="mono text-[11px] text-[#8A99AD] mt-0.5">--</p>
+            </div>
+            <button id="btn-mission-close" type="button" aria-label="Cerrar ficha"
+              class="nasa-btn px-2 py-1 mono text-xs text-[#8A99AD]">✕</button>
+          </div>
+          <dl class="mt-2.5 space-y-1.5 text-xs">
+            <div class="flex items-baseline justify-between gap-3"><dt class="text-[11px] text-[#8A99AD]">Tipo</dt><dd id="mc-type" class="mono text-right">--</dd></div>
+            <div class="flex items-baseline justify-between gap-3"><dt class="text-[11px] text-[#8A99AD]">Resultado</dt><dd id="mc-outcome" class="mono text-right">--</dd></div>
+            <div class="flex items-baseline justify-between gap-3"><dt class="text-[11px] text-[#8A99AD]">Lugar</dt><dd id="mc-site" class="text-right text-[#CBD5E1]">--</dd></div>
+            <div class="flex items-baseline justify-between gap-3"><dt class="text-[11px] text-[#8A99AD]">Coordenadas</dt><dd id="mc-coords" class="mono text-right text-[#CBD5E1]">--</dd></div>
+          </dl>
+          <p id="mc-summary" class="mt-3 pt-2.5 border-t border-white/10 text-[12px] leading-relaxed text-[#CBD5E1]">--</p>
+        </div>
+
+        <!-- Telemetría lunar compacta -->
+        <aside class="absolute left-4 bottom-4 w-72 nasa-panel p-3">
+          <h3 class="text-[10px] uppercase tracking-[0.12em] text-[#8A99AD] pb-1.5 border-b border-white/15">Telemetría lunar</h3>
+          <dl class="mt-2 space-y-1.5 text-[11px]">
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Fase</dt><dd id="moon-phase-name" class="mono text-[#F8FAFC]">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Iluminación</dt><dd id="moon-illum" class="mono text-[#F8FAFC] font-medium">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Edad lunar</dt><dd id="moon-age" class="mono text-[#CBD5E1]">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Próxima llena (UTC)</dt><dd id="moon-next-full" class="mono text-[#CBD5E1]">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Próxima nueva (UTC)</dt><dd id="moon-next-new" class="mono text-[#CBD5E1]">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Punto subsolar</dt><dd id="moon-subsolar" class="mono text-[#CBD5E1]">--</dd></div>
+            <div class="flex items-baseline justify-between pt-1.5 border-t border-white/10"><dt class="text-[#8A99AD]">Distancia</dt><dd id="moon-dist" class="mono text-[#F8FAFC]">--</dd></div>
+            <div class="flex items-baseline justify-between"><dt class="text-[#8A99AD]">Velocidad</dt><dd id="moon-vel" class="mono text-[#1C67E3]">--</dd></div>
+          </dl>
+          <p id="globe-credit" class="hidden mt-2 pt-1.5 border-t border-white/10 mono text-[9px] leading-snug text-[#8A99AD]/70">
+            Mapa lunar: NASA's Scientific Visualization Studio · datos LRO
+          </p>
+        </aside>
+
+        <p id="globe-hint" class="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 mono text-[10px] uppercase tracking-[0.14em] text-[#8A99AD]/70 whitespace-nowrap">
+          Arrastra para girar · Rueda para acercar · Doble clic: cara visible
+        </p>
+      </div>
+
+      <!-- Panel de misiones -->
+      <aside id="missions-panel" class="absolute top-4 right-4 bottom-4 w-[22.5rem] nasa-panel flex flex-col">
+        <div id="missions-header" class="px-4 pt-4 pb-3 border-b border-white/15">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-xs font-semibold tracking-[0.14em] uppercase whitespace-nowrap">Misiones lunares</h3>
+            <div class="flex items-center gap-2">
+              <span id="missions-count" class="mono text-[11px] text-[#8A99AD] whitespace-nowrap">--</span>
+              <button id="btn-missions-toggle" type="button" title="Plegar o desplegar el panel de misiones"
+                class="nasa-btn px-2 py-1 mono text-[10px] uppercase tracking-wider text-[#8A99AD] border border-white/15 whitespace-nowrap">
+                ▴ Plegar
+              </button>
+            </div>
+          </div>
+          <div id="missions-filters">
+            <div id="mission-type-filters" class="mt-3 flex flex-wrap gap-1"></div>
+            <div id="mission-country-filters" class="mt-1.5 flex flex-wrap gap-1"></div>
+          </div>
+        </div>
+        <div id="mission-list" class="flex-1 overflow-y-auto px-2 py-2"></div>
+        <div id="missions-legend" class="px-4 py-2 border-t border-white/10 flex items-center gap-3 mono text-[10px] text-[#8A99AD]">
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-[#22C55E] inline-block"></span>Éxito</span>
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-[#F59E0B] inline-block"></span>Parcial</span>
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-[#FC3D21] inline-block"></span>Fallida</span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Regla estricta NASA / JPL: esquinas rectas de 90 grados en toda la interfaz */
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-radius: 0px !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #030508;
+  color: #F8FAFC;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+canvas:active {
+  cursor: move;
+}
+
+.nasa-panel {
+  background: rgba(11, 16, 24, 0.85);
+  /* El prefijo va primero: el minificador conserva la última declaración. */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.nasa-btn {
+  border: 1px solid transparent;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  cursor: pointer;
+}
+
+.nasa-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #F8FAFC;
+}
+
+.nasa-btn-active {
+  background-color: #0B3D91;
+  border: 1px solid #1C67E3;
+  color: #F8FAFC;
+}
+
+.nasa-btn-active:hover {
+  background-color: #1C67E3;
+}
+
+#brand-logo {
+  height: 24px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #030508;
+}
+::-webkit-scrollbar-thumb {
+  background: #1C67E3;
+}
+  
+
+/* Expansión lunar: el HUD del Sistema Solar se oculta durante la transición y la vista lunar */
+#hud-header,
+#hud-footer,
+#inspector-card {
+  transition: opacity 0.25s ease;
+}
+
+body[data-view="to-moon"] #hud-header,
+body[data-view="to-moon"] #hud-footer,
+body[data-view="to-moon"] #inspector-card,
+body[data-view="moon"] #hud-header,
+body[data-view="moon"] #hud-footer,
+body[data-view="moon"] #inspector-card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Expansión lunar: panel de misiones plegado. Queda sólo la cabecera y la Luna ocupa todo el ancho. */
+#moon-view-inner[data-missions="collapsed"] #moon-stage {
+  right: 0;
+}
+
+#moon-view-inner[data-missions="collapsed"] #missions-panel {
+  bottom: auto;
+}
+
+#moon-view-inner[data-missions="collapsed"] #missions-header {
+  padding-bottom: 1rem;
+  border-bottom-width: 0;
+}
+
+#moon-view-inner[data-missions="collapsed"] #missions-filters,
+#moon-view-inner[data-missions="collapsed"] #mission-list,
+#moon-view-inner[data-missions="collapsed"] #missions-legend {
+  display: none;
+}
+
+/* El título se aparta de la cabecera plegada */
+#moon-view-inner[data-missions="collapsed"] #moon-title {
+  right: 24.5rem;
+}
+
+/* Zona de la Luna estrecha (pantallas pequeñas o monitor principal reducido): se ocultan
+   el título y la ayuda para que no choquen con los botones ni con la telemetría. */
+#moon-view-inner[data-compact="true"] #moon-title,
+#moon-view-inner[data-compact="true"] #globe-hint {
+  display: none;
+}

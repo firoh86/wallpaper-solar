@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wallpaper-solar"
+dynamic = ["version"]
+description = "Simulación del Sistema Solar como fondo de escritorio animado e interactivo para Windows"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pywebview>=5.0",
+    "pystray>=0.19",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.gui-scripts]
+wallpaper-solar = "wallpaper_solar.main:main"
+
+[tool.setuptools.dynamic]
+# Única fuente de la versión: src/wallpaper_solar/__init__.py (también la usa el instalador)
+version = { attr = "wallpaper_solar.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]

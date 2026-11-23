@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Ejecutar wallpaper",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "wallpaper_solar",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "preLaunchTask": "Web: compilar"
+    },
+    {
+      "name": "Ejecutar wallpaper con logs",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "wallpaper_solar",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "WALLPAPER_DEBUG": "1"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "preLaunchTask": "Web: compilar"
+    },
+    {
+      "name": "Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}

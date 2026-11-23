@@ -1,0 +1,81 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "shell": {
+      "executable": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-Command"
+      ]
+    }
+  },
+  "tasks": [
+    {
+      "label": "1. Crear entorno virtual (.venv)",
+      "type": "shell",
+      "command": "py -3 -m venv .venv",
+      "problemMatcher": []
+    },
+    {
+      "label": "2. Instalar dependencias",
+      "detail": "Python (.venv) y web (npm)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python.exe -m pip install --upgrade pip; .\\.venv\\Scripts\\python.exe -m pip install -r requirements-dev.txt; npm --prefix web install",
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: compilar",
+      "detail": "web/ -> web/dist/index.html (lo que carga el wallpaper)",
+      "type": "shell",
+      "command": "npm --prefix web run build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: modo desarrollo (navegador)",
+      "detail": "Abre la simulación en el navegador y recarga al guardar",
+      "type": "shell",
+      "command": "npm --prefix web run dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Ejecutar wallpaper",
+      "detail": "Compila la web y arranca el wallpaper",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python.exe run.py",
+      "dependsOn": "Web: compilar",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Tests",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Revisar código (ruff)",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python.exe -m ruff check src tests",
+      "problemMatcher": []
+    },
+    {
+      "label": "Compilar instalador",
+      "detail": "web -> tests -> WallpaperSolar.exe -> instalador (build\\output)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File build\\build.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Compilar sólo el ejecutable",
+      "detail": "build\\output\\dist\\WallpaperSolar\\WallpaperSolar.exe, sin Inno Setup",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File build\\build.ps1 -SkipInstaller",
+      "problemMatcher": []
+    }
+  ]
+}
